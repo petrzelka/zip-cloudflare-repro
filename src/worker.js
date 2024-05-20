@@ -1,11 +1,18 @@
-import createThenReadZip from "../create-and-read-zip.mjs";
+import { TextReader, ZipWriter } from "@zip.js/zip.js";
 
 export default {
   async fetch(request, env, ctx) {
-    const zipFileBlob = await createThenReadZip();
+    const { readable, writable } = new TransformStream();
+    const zipWriter = new ZipWriter(writable);
 
-    return new Response(zipFileBlob, {
-      status: 200,
+    ctx.waitUntil(
+      (async () => {
+        await zipWriter.add("hello.txt", new TextReader("Hello world!"));
+        await zipWriter.close();
+      })()
+    );
+
+    return new Response(readable, {
       headers: {
         "Content-Disposition": 'attachment; filename="file.zip"',
         "Content-Type": "application/zip",
